@@ -30,3 +30,7 @@ Revision history for Perl module Statistics::LineFit
      Added check to verify that at least two of the weights are nonzero.
      Minor revisions to documentation.
 
+0.07 Wed Sep  2 09:09:36 PST 2004
+     Added varianceOfEstimates() method to compute the variances of the 
+     estimates of the intercept and slope.
+

@@ -4,7 +4,7 @@
 
 use strict;
 
-use Test::More tests => 10;
+use Test::More tests => 12;
 
 my $epsilon = 1.0e-10;
 my (@x, @y);
@@ -35,5 +35,10 @@ eval {
         'tStatistics[0]');
     cmp_ok(abs($tStatistics[1] - 1549.07989604865), "<", $epsilon, 
         'tStatistics[0]');
+    my @varianceOfEstimates = $lineFit->varianceOfEstimates();
+    cmp_ok(abs($varianceOfEstimates[0] - 8.96982691422364e-08), "<", $epsilon, 
+        'varianceOfEstimates[0]');
+    cmp_ok(abs($varianceOfEstimates[1] - 0.0), "<", $epsilon, 
+        'varianceOfEstimates[0]');
 };
 is($@, '', 'eval error trap');

@@ -350,6 +350,41 @@ sub validWeights {
     return 1;
 }
 
+sub varianceOfEstimates {
+#
+# Purpose: Return the variances in the estimates of the intercept and slope
+# 
+    my $self = shift;
+    unless (defined $self->{intercept} and defined $self->{slope}) {
+        $self->regress() or return;
+    }
+    my @predictedYs = $self->predictedYs();
+    my ($s, $sx, $sxx) = (0, 0, 0);
+    if (defined $self->{weight}) {
+        for (my $i = 0; $i < $self->{numXY}; ++$i) {
+            my $variance = ($predictedYs[$i] - $self->{y}[$i]) ** 2; 
+            next if 0 == $variance;
+            $s += 1.0 / $variance;
+	    $sx += $self->{weight}[$i] * $self->{x}[$i] / $variance;
+	    $sxx += $self->{weight}[$i] * $self->{x}[$i] ** 2 / $variance;
+        }
+    } else {
+        for (my $i = 0; $i < $self->{numXY}; ++$i) {
+            my $variance = ($predictedYs[$i] - $self->{y}[$i]) ** 2; 
+            next if 0 == $variance;
+            $s += 1.0 / $variance;
+	    $sx += $self->{x}[$i] / $variance;
+	    $sxx += $self->{x}[$i] ** 2 / $variance;
+        }
+    }
+    my $denominator = ($s * $sxx - $sx ** 2);
+    if (0 == $denominator) {
+        return;
+    } else {
+        return ($sxx / $denominator, $s / $denominator);
+    }
+}
+
 1;
 
 __END__
@@ -372,6 +407,7 @@ Statistics::LineFit - Least squares line fit, weighted or unweighted
  ($tStatIntercept, $tStatSlope) = $lineFit->tStatistics();
  @predictedYs = $lineFit->predictedYs();
  @residuals = $lineFit->residuals();
+ (varianceIntercept, $varianceSlope) = $lineFit->varianceOfEstimates();
 
 =head1 DESCRIPTION
 
@@ -380,6 +416,7 @@ line fitting to two-dimensional data (y = a + b * x).  (This is also called
 linear regression.)  In addition to the slope and y-intercept, the module
 can return the square of the correlation coefficient (R squared), the
 Durbin-Watson statistic, the mean squared error, sigma, the t statistics,
+the variance of the estimates of the slope and y-intercept, 
 the predicted y values and the residuals of the y values.  (See the METHODS
 section for a description of these statistics.)
 
@@ -396,7 +433,6 @@ setData() method, you can call the other methods in any order or call a
 method several times without invoking redundant calculations.  After calling
 setData(), you can modify the input data or weights without affecting the
 module's results.
-
 
 The decision to use or not use weighting could be made using your a
 priori knowledge of the data or using supplemental data.  If the data is
@@ -615,17 +651,35 @@ large and positive, large and negative).
 The returned list is undefined if the regression fails.  If weights 
 are input, the returned values are the weighted t statistics.
 
+=head2 varianceOfEstimates() - Return variances of estimates of intercept, slope
+
+ (varianceIntercept, $varianceSlope) = $lineFit->varianceOfEstimates();
+
+Assuming the data are noisy or inaccurate, the intercept and slope returned
+by the coefficients() method are only estimates of the true intercept and 
+slope.  The varianceofEstimate() method returns the variances of the 
+estimates of the intercept and slope, respectively.  See Numerical Recipes
+in C, section 15.2 (Fitting Data to a Straight Line), equation 15.2.9.
+
+The returned list is undefined if the regression fails.  If weights 
+are input, the returned values are the weighted variances.
+
 =head1 SEE ALSO
 
  Mendenhall, W., and Sincich, T.L., 2003, A Second Course in Statistics:
    Regression Analysis, 6th ed., Prentice Hall.
+ Press, W. H., Flannery, B. P., Teukolsky, S. A., Vetterling, W. T., 1992,
+   Numerical Recipes in C : The Art of Scientific Computing, 2nd ed., 
+   Cambridge University Press.
  The man page for perl(1).
  The CPAN modules Statistics::OLS, Statistics::GaussHelmert and 
    Statistics::Regression.
 
 Statistics::LineFit is simpler to use than Statistics::GaussHelmert or
 Statistics::Regression.  Statistics::LineFit was inspired by and borrows some
-ideas from the venerable Statistics::OLS module.  The significant differences
+ideas from the venerable Statistics::OLS module.  
+
+The significant differences
 between Statistics::LineFit and Statistics::OLS (version 0.07) are:
 
 =over 4

@@ -5,7 +5,7 @@
 
 use strict;
 
-use Test::More tests => 26;
+use Test::More tests => 29;
 
 my $epsilon = 1.0e-12;
 my @x = (1, 2, 3, 4, 5);
@@ -29,6 +29,8 @@ eval {
     is($lineFit->sigma(), 0, 'sigma()');
     my @tStatistics = $lineFit->tStatistics();
     is_deeply(\@tStatistics, [ (0, 0) ], 'tStatistics()');
+    my @varianceOfEstimates = $lineFit->varianceOfEstimates();
+    is(@varianceOfEstimates, 0, 'varianceOfEstimates()');
     my $sumSqErrors = 0;
     for (my $i = 0; $i < @residuals; ++$i) { 
         $sumSqErrors += $residuals[$i] ** 2 * $weights[$i];
@@ -65,6 +67,11 @@ eval {
         'tStatistics[0]');
     cmp_ok(abs($tStatistics[1] - 13.3932561516921), "<", $epsilon, 
         'tStatistics[0]');
+    @varianceOfEstimates = $lineFit->varianceOfEstimates();
+    cmp_ok(abs($varianceOfEstimates[0] - 0.0193944771559506), "<", $epsilon, 
+        'varianceOfEstimates[0]');
+    cmp_ok(abs($varianceOfEstimates[1] - 0.00213610609637551), "<", $epsilon, 
+        'varianceOfEstimates[0]');
     $sumSqErrors = 0;
     foreach my $residual (@residuals) { $sumSqErrors += $residual ** 2 }
     cmp_ok(abs($sumSqErrors - $lineFit->sumSqErrors()), "<", $epsilon, 

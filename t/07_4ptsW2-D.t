@@ -5,7 +5,7 @@
 
 use strict;
 
-use Test::More tests => 19;
+use Test::More tests => 21;
 
 my $epsilon = 1.0e-12;
 my @x = (1, 2, 3, 4);
@@ -39,6 +39,11 @@ eval {
         'tStatistics[0]');
     cmp_ok(abs($tStatistics[1] - 14.9797948208089), "<", $epsilon, 
         'tStatistics[0]');
+    my @varianceOfEstimates = $lineFit->varianceOfEstimates();
+    cmp_ok(abs($varianceOfEstimates[0] - 3.85435204917384e-05), "<", $epsilon, 
+        'varianceOfEstimates[0]');
+    cmp_ok(abs($varianceOfEstimates[1] - 5.24491637451941e-06), "<", $epsilon, 
+        'varianceOfEstimates[0]');
     my $sumSqErrors = 0;
     for (my $i = 0; $i < @residuals; ++$i) {
         $sumSqErrors += $residuals[$i] ** 2 * $weights[$i];

@@ -4,7 +4,7 @@
 
 use strict;
 
-use Test::More tests => 11;
+use Test::More tests => 13;
 
 eval {
     use Statistics::LineFit;
@@ -21,5 +21,8 @@ eval {
     my ($tStatIntercept, $tStatSlope) = $lineFit->tStatistics();
     ok(! defined $tStatIntercept, 'tStatIntercept');
     ok(! defined $tStatSlope, 'tStatSlope');
+    my ($varianceIntercept, $varianceSlope) = $lineFit->varianceOfEstimates();
+    ok(! defined $varianceIntercept, 'varianceIntercept');
+    ok(! defined $varianceSlope, 'varianceSlope');
 };
 is($@, '', 'eval error trap');

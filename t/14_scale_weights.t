@@ -4,7 +4,7 @@
 
 use strict;
 
-use Test::More tests => 21;
+use Test::More tests => 25;
 
 my $epsilon = 1.0e-10;
 my (@x, @y, @weights);
@@ -38,6 +38,11 @@ eval {
         'tStatistics1[0]');
     cmp_ok(abs($tStatistics1[1] - 108.793322452779), "<", $epsilon, 
         'tStatistics1[0]');
+    my @varianceOfEstimates1 = $lineFit->varianceOfEstimates();
+    cmp_ok(abs($varianceOfEstimates1[0] - 0.000758134044735196), "<", $epsilon, 
+        'varianceOfEstimates1[0]');
+    cmp_ok(abs($varianceOfEstimates1[1] - 1.78672521866159e-07), "<", $epsilon, 
+        'varianceOfEstimates1[0]');
     my $meanSqError1 = $lineFit->meanSqError();
     cmp_ok(abs($meanSqError1 - 0.603149693112746), "<", $epsilon,
         'meanSqError1()');
@@ -68,6 +73,11 @@ eval {
         'tStatistics2[0]');
     cmp_ok(abs($tStatistics1[1] - 108.793322452779), "<", $epsilon, 
         'tStatistics2[0]');
+    my @varianceOfEstimates2 = $lineFit->varianceOfEstimates();
+    cmp_ok(abs($varianceOfEstimates2[0] - $varianceOfEstimates1[0]), "<", 
+        $epsilon, 'varianceOfEstimates2[0]');
+    cmp_ok(abs($varianceOfEstimates1[1] - 1.78672521866159e-07), "<", $epsilon, 
+        'varianceOfEstimates2[0]');
     cmp_ok(abs($lineFit->meanSqError() - $meanSqError1), "<", $epsilon,
         'meanSqError2()');
     cmp_ok(abs($lineFit->sigma() - $sigma1), "<", $epsilon, 'sigma2()');

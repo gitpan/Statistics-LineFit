@@ -4,7 +4,7 @@
 
 use strict;
 
-use Test::More tests => 10;
+use Test::More tests => 11;
 
 my @x = (1, 2, 3, 4);
 my @y = (1.2, 2.9, 19.1, 15.2,);
@@ -29,5 +29,9 @@ eval {
     my @tStatistics1 = $lineFit->tStatistics();
     my @tStatistics2 = $lineFit->tStatistics();
     is_deeply(\@tStatistics1, \@tStatistics2, 'tStatistics[0]');
+    my @varianceOfEstimates1 = $lineFit->varianceOfEstimates();
+    my @varianceOfEstimates2 = $lineFit->varianceOfEstimates();
+    is_deeply(\@varianceOfEstimates1, \@varianceOfEstimates2, 
+        'varianceOfEstimates[0]');
 };
 is($@, '', 'eval error trap');
