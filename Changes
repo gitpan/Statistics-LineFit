@@ -2,20 +2,24 @@
 Revision history for Perl module Statistics::LineFit
 
 0.01 Sat Nov 15 09:42:50 2003
-    Original version; created by ExtUtils::ModuleMaker 0.32
+     Original version; created by ExtUtils::ModuleMaker 0.32
 
 0.01 Mon Nov 17 15:27:57 PST 2003
-    Release to CPAN.
+     Release to CPAN.
 
 0.02 Tue Nov 18 12:22:45 PST 2003
-    Fixed format bug in POD documentation.
+     Fixed format bug in POD documentation.
 
-0.03 Fri Nov 21 15:25:36 PST 2003
-    Changed epsilon tolerance in test 14_scale_weights from 1.0e-11 to 1.0e-10
-    to make test pass on MSWin32-x86-multi-thread.
-
-    Modified tests 02_R5ptsU1-D through 08_3ptsU1-D to run cleanly with
-    "use strict".  All tests are now "use strict" clean and -w clean.
-
-    Minor revisions to documentation.
+0.03 Sun Nov 24 15:25:36 PST 2003
+     Changed epsilon tolerance in test 14_scale_weights from 1.0e-11 to 1.0e-10
+     to make test pass on MSWin32-x86-multi-thread.
  
+     Modified tests 02_R5ptsU1-D through 08_3ptsU1-D to run cleanly with
+     "use strict".  All test files (*.t) are now "use strict" clean and
+     -w clean.
+
+     Minor revisions to documentation.
+ 
+0.04 Mon Jan 5 23:05:15 PST 2004
+     No significant changes.  Minor revisions to documentation and code.
+

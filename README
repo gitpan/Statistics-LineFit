@@ -136,7 +136,7 @@ METHODS
   coefficients() - Return the slope and y intercept
      ($intercept, $slope) = $lineFit->coefficients();
 
-     The returned values are undefined if the regression fails.
+    The returned values are undefined if the regression fails.
 
   durbinWatson() - Return the Durbin-Watson statistic
      $durbinWatson = $lineFit->durbinWatson();

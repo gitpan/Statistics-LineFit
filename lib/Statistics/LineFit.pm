@@ -8,7 +8,7 @@ BEGIN {
         @EXPORT      = @EXPORT_OK = qw();
         %EXPORT_TAGS = ();
         @ISA         = qw(Exporter);
-        $VERSION     = 0.03;
+        $VERSION     = 0.04;
 }
 
 sub new {
@@ -42,11 +42,11 @@ sub computeSums {
     my ($sumX, $sumY, $sumXX, $sumYY, $sumXY) = (0, 0, 0, 0, 0);
     if (defined $self->{weight}) {
         for (my $i = 0; $i < $self->{numXY}; ++$i) {
-            $sumX += $self->{weight}->[$i] * $self->{x}[$i];
-            $sumY += $self->{weight}->[$i] * $self->{y}[$i];
-            $sumXX += $self->{weight}->[$i] * $self->{x}[$i] ** 2;
-            $sumYY += $self->{weight}->[$i] * $self->{y}[$i] ** 2;
-            $sumXY += $self->{weight}->[$i] * $self->{x}[$i] 
+            $sumX += $self->{weight}[$i] * $self->{x}[$i];
+            $sumY += $self->{weight}[$i] * $self->{y}[$i];
+            $sumXX += $self->{weight}[$i] * $self->{x}[$i] ** 2;
+            $sumYY += $self->{weight}[$i] * $self->{y}[$i] ** 2;
+            $sumXY += $self->{weight}[$i] * $self->{x}[$i] 
                 * $self->{y}[$i];
         }
     } else {
@@ -206,7 +206,7 @@ sub setData {
     }
     if ($self->{validate}) { 
         unless ($self->validData()) { 
-            $self->{x} = $self->{y} = $self->{weights} = undef;
+            $self->{x} = $self->{y} = $self->{weights} = $self->{numXY} = undef;
             return 0;
         }
     }
@@ -476,7 +476,7 @@ of the regress() method to check the status of the regression.
 
  ($intercept, $slope) = $lineFit->coefficients();
 
- The returned values are undefined if the regression fails.
+The returned values are undefined if the regression fails.
 
 =head2 durbinWatson() - Return the Durbin-Watson statistic
 
@@ -501,7 +501,7 @@ input, the return value is the weighted mean squared error.
 
  @predictedYs = $lineFit->predictedYs();
 
-The returned values are undefined if the regression fails.
+The returned list is undefined if the regression fails.
 
 =head2 regress() - Do the least squares line fit (if not already done)
 
@@ -515,7 +515,7 @@ of the regression for the current data.
 
  @residuals = $lineFit->residuals();
 
-The returned values are undefined if the regression fails.
+The returned list is undefined if the regression fails.
 
 =head2 rSquared() - Return the correlation coefficient
 
@@ -573,7 +573,7 @@ the t distribution.  The t-statistic suggests that the estimated value is
 (reasonable, too small, too large) when the t-statistic is (close to zero,
 large and positive, large and negative).
 
-The returned values are undefined if the regression fails.  If weights 
+The returned list is undefined if the regression fails.  If weights 
 are input, the returned values are the weighted t statistics.
 
 =head1 LIMITATIONS
@@ -581,20 +581,20 @@ are input, the returned values are the weighted t statistics.
 The module cannot fit a line to a set of points that have the same x values.
 This is an inherent limit to fitting a line of the form y = a + b * x.
 As the sum of the squared deviations of the x values approaches zero,
-the module's results becomes unstable and sensitive to the precision of
-floating point operations on the host system.
+the module's results becomes sensitive to the precision of floating point
+operations on the host system.
 
 If the x values are not all the same and the apparent "best fit" line is
 vertical, the module will fit a horizontal line.  For example, an input of
-(1, 1), (2, 3), (2, 5), (1, 7) returns a slope of zero, an intercept of 4
+(1, 1), (1, 7), (2, 3), (2, 5) returns a slope of zero, an intercept of 4
 and an R squared of zero.  This is correct behavior because this is the best
-least-squares line fit to the data for the given parameterization 
+least-squares fit to the data for the given parameterization 
 (y = a + b * x).
 
 On a 32-bit system the results are accurate to about 11 significant digits,
 depending on the input data.  Many of the installation tests will fail
 on a system with word lengths of 16 bits or fewer.  (You might want to
-upgrade your old Intel 80286 IBM PC.)
+upgrade your old 80286 IBM PC.)
 
 =head1 SEE ALSO
 
@@ -613,12 +613,12 @@ differences between Statistics::LineFit and Statistics::OLS are:
 
 =item B<Statistics::LineFit is more robust.>
 
-For certain datasets Statistics::OLS returns incorrect results.
+Statistics::OLS returns incorrect results for certain input datasets. 
 Statistics::OLS does not deep copy its input arrays, which can lead
 to subtle bugs.  The Statistics::OLS installation test has only one
 test and does not verify that the regression returned correct results.
 In contrast, Statistics::LineFit has over 200 installation tests that use
-various datasets / calling sequences and it verifies the accuracy of the
+various datasets/calling sequences to verify the accuracy of the
 regression to within 1.0e-10.
 
 =item B<Statistics::LineFit is faster.>
