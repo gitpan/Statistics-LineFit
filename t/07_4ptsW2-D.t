@@ -29,7 +29,7 @@ eval {
     my @results = (0.24770642201835, -0.124770642201834, 0.00275229357798157,
         0.0302752293577973);
     for (my $i = 0; $i < @residuals; ++$i) {
-        cmp_ok(abs(@residuals[$i] - $results[$i]), "<", $epsilon, 
+        cmp_ok(abs($residuals[$i] - $results[$i]), "<", $epsilon, 
             'residuals()');
     }
     cmp_ok(abs($lineFit->rSquared() - 0.991165853485171), "<", $epsilon, 
@@ -53,7 +53,7 @@ eval {
     @results = (0.95229357798165, 2.02477064220183, 3.09724770642202,
         4.1697247706422);
     for (my $i = 0; $i < @predictedY; ++$i) {
-        cmp_ok(abs(@predictedY[$i] - $results[$i]), "<", $epsilon, 
+        cmp_ok(abs($predictedY[$i] - $results[$i]), "<", $epsilon, 
             'predictedY()');
     }
 };

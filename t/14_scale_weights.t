@@ -58,7 +58,6 @@ eval {
 
 # Rescale weights and verify the results are the same
     for (my $i = 0; $i < $n; ++$i) { $weights[$i] *= 1000 }
-    $epsilon = 1.0e-11;
     is($lineFit->setData(\@x, \@y, \@weights), 1, 
         'setData2(\@x, \@y, \@weights)');
     cmp_ok(abs($lineFit->rSquared() - $rSquared1), "<", $epsilon, 'rSquared()');
@@ -78,7 +77,7 @@ eval {
     cmp_ok(abs($coefficients2[1] - $coefficients1[1]), "<", $epsilon, 
         'coefficients2[1]');
     my $sumSqErrors2 = 0;
-    my @residuals = $lineFit->residuals();
+    @residuals = $lineFit->residuals();
     for (my $i = 0; $i < @residuals; ++$i) {
         $sumSqErrors2 += $residuals[$i] ** 2 * $weights[$i];
     }

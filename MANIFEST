@@ -20,3 +20,4 @@ t/11_no_data.t
 t/12_idempotent.t
 t/13_long_array.t
 t/14_scale_weights.t
+META.yml                                Module meta-data (added by MakeMaker)

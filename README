@@ -36,13 +36,12 @@ DESCRIPTION
     The Statistics::LineFit module does weighted or unweighted least-squares
     line fitting to two-dimensional data (y = a + b * x). (This is also
     called linear regression.) In addition to the slope and y-intercept, the
-    module can return the Durbin-Watson statistic, the mean squared error,
-    sigma, t statistics, the predicted y values and the residuals of the y
-    values. See the METHODS section for a description of these statistics.
-    See the SEE ALSO section for a comparison of this module to
-    Statistics::OLS.
+    module can return the Durbin-Watson statistic, mean squared error,
+    sigma, t statistics, predicted y values and residuals of the y values.
+    See the METHODS section for a description of these statistics. See the
+    SEE ALSO section for a comparison of this module to Statistics::OLS.
 
-    The module accepts input in separate x and y arrays or a single 2-D
+    The module accepts input data in separate x and y arrays or a single 2-D
     array (an array of arrayrefs). The optional weights are input in a
     separate array. The module can optionally verify that the input data and
     weights are valid numbers. If weights are input, the returned statistics
@@ -64,8 +63,8 @@ DESCRIPTION
     The decision to use or not use weighting could be made using your a
     priori knowledge of the data or using supplemental data. In the presence
     of non-random noise weighting can degrade the solution. Weighting is a
-    good option if certain measurements are suspect or less relevant (e.g.,
-    older terms in a time series, data from a suspect source).
+    good option if some points are suspect or less relevant (e.g., older
+    terms in a time series, data from a suspect source).
 
 ALGORITHM
     The least-square line is the line that minimizes the sum of the squares
@@ -83,9 +82,11 @@ ALGORITHM
 
     If you use weights, each term in the sums is multiplied by the value of
     the weight for that index. Note that a and b are undefined if all the x
-    values are the same. Statistics::LineFit uses equations that are
-    mathematically equivalent to the above equations and computationally
-    more efficient. The module runs in O(N) (linear time).
+    values are the same.
+
+    Statistics::LineFit uses equations that are mathematically equivalent to
+    the above equations and computationally more efficient. The module runs
+    in O(N) (linear time).
 
 EXAMPLES
   Alternate calling sequence:
@@ -241,27 +242,29 @@ LIMITATIONS
 
     On a 32-bit system the results are accurate to about 11 significant
     digits, depending on the input data. Many of the installation tests will
-    fail on a system with word lengths of 16 bits or fewer.
+    fail on a system with word lengths of 16 bits or fewer. (You might want
+    to upgrade your old Intel 80286 IBM PC.)
 
 SEE ALSO
      Mendenhall, W., and Sincich, T.L., 2003, A Second Course in Statistics:
        Regression Analysis, 6th ed., Prentice Hall.
      The man page for perl(1).
-     The CPAN module Statistics::OLS.
+     The CPAN modules Statistics::OLS, Statistics::GaussHelmert and 
+       Statistics::Regression.
 
-    Statistics::LineFit was inspired by and borrows some ideas from the
-    venerable Statistics::OLS module. The significant differences between
-    Statistics::LineFit and Statistics::OLS are:
+    Statistics::LineFit is simpler to use than Statistics::GaussHelmert or
+    Statistics::Regression. Statistics::LineFit was inspired by and borrows
+    some ideas from the venerable Statistics::OLS module. The significant
+    differences between Statistics::LineFit and Statistics::OLS are:
 
     Statistics::LineFit is more robust.
-        For certain datasets Statistics::OLS will return incorrect results
-        (e.g., only two data points). Statistics::OLS does not deep copy its
-        input arrays, which can lead to subtle bugs. The Statistics::OLS
-        installation test has only one test and does not verify that the
-        regression returned correct results. In contrast,
-        Statistics::LineFit has over 200 installation tests that use various
-        datasets / calling sequences and it verifies the accuracy of the
-        regression to within 1.0e-10.
+        For certain datasets Statistics::OLS returns incorrect results.
+        Statistics::OLS does not deep copy its input arrays, which can lead
+        to subtle bugs. The Statistics::OLS installation test has only one
+        test and does not verify that the regression returned correct
+        results. In contrast, Statistics::LineFit has over 200 installation
+        tests that use various datasets / calling sequences and it verifies
+        the accuracy of the regression to within 1.0e-10.
 
     Statistics::LineFit is faster.
         For a sequence of calls to new(), setData(\@x, \@y) and regress(),
@@ -272,7 +275,7 @@ SEE ALSO
     Statistics::LineFit can do weighted or unweighted regression.
         Statistics::OLS lacks this option.
 
-    Statistics::LineFit has a better (or at least different) interface.
+    Statistics::LineFit has a better interface.
         Once you call the Statistics::LineFit::setData() method, you can
         call the other methods in any order and call methods multiple times
         without invoking redundant calculations. Statistics::LineFit lets
@@ -285,7 +288,7 @@ SEE ALSO
         more detailed and complete.
 
 VERSION
-    This document describes Statistics::LineFit version 0.02. The comments
+    This document describes Statistics::LineFit version 0.03. The comments
     about Statistics::OLS refer to version 0.07 of that module.
 
 AUTHOR

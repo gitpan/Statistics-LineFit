@@ -23,7 +23,7 @@ make install
 If you want to install the module in a directory other than the default
 location, use something like:
 
-perl Makefile.PL LIB=/home/mydir/perl/lib
+perl Makefile.PL PREFIX=/home/mydir/perl LIB=/home/mydir/perl/lib 
 
 WINDOWS
 

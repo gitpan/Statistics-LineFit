@@ -30,7 +30,7 @@ eval {
     my @results = (0.130000000000002, -0.189999999999999, -0.00999999999999979,
         0.0699999999999994);
     for (my $i = 0; $i < @residuals; ++$i) {
-        cmp_ok(abs(@residuals[$i] - $results[$i]), "<", $epsilon, 
+        cmp_ok(abs($residuals[$i] - $results[$i]), "<", $epsilon, 
             'residuals()');
     }
     cmp_ok(abs($lineFit->rSquared() - 0.988973384030419), "<", $epsilon, 

@@ -24,13 +24,13 @@ eval {
     my @predictedY = $lineFit->predictedYs();
     my @results = (1.28867513459481, 1.28867513459481, 1.28867513459481);
     for (my $i = 0; $i < @predictedY; ++$i) {
-        cmp_ok(abs(@predictedY[$i] - $results[$i]), "<", $epsilon, 
+        cmp_ok(abs($predictedY[$i] - $results[$i]), "<", $epsilon, 
             'predictedY()');
     }
     my @residuals = $lineFit->residuals();
     @results = (-0.288675134594813, 0.577350269189625, -0.288675134594813);
     for (my $i = 0; $i < @residuals; ++$i) {
-        cmp_ok(abs(@residuals[$i] - $results[$i]), "<", $epsilon, 
+        cmp_ok(abs($residuals[$i] - $results[$i]), "<", $epsilon, 
             'residuals()');
     }
     is($lineFit->rSquared(), 0, 'rSquared()');

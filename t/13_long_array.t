@@ -6,7 +6,7 @@ use strict;
 
 use Test::More tests => 10;
 
-my $epsilon = 1.0e-10;  # Use more liberal threshold for these tests
+my $epsilon = 1.0e-10;
 my (@x, @y);
 for (my $i = 0; $i < 100000; ++$i) { 
     $x[$i] = $i;

@@ -4,12 +4,11 @@ use Carp qw(carp);
 BEGIN {
         use Exporter ();
         use vars qw ($AUTHOR $VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
-        $AUTHOR = 'Richard Anderson <cpan(AT)richardanderson(DOT)org>';
-        @EXPORT      = qw ();
-        @EXPORT_OK   = qw ();
+        $AUTHOR      = 'Richard Anderson <cpan(AT)richardanderson(DOT)org>';
+        @EXPORT      = @EXPORT_OK = qw();
         %EXPORT_TAGS = ();
-        @ISA         = qw (Exporter);
-        $VERSION     = 0.02;
+        @ISA         = qw(Exporter);
+        $VERSION     = 0.03;
 }
 
 sub new {
@@ -31,7 +30,7 @@ sub coefficients {
 # Purpose: Return the slope and intercept from least squares line fit
 # 
     my $self = shift;
-    $self->regressOK() or return;
+    $self->regress() or return;
     return ($self->{intercept}, $self->{slope});
 }
 
@@ -67,19 +66,20 @@ sub durbinWatson {
 # Purpose: Return the Durbin-Watson statistic
 # 
     my $self = shift;
-    return $self->{durbinWatson} if defined $self->{durbinWatson};
-    $self->regressOK() or return;
-    my $sumErrDiff = 0;
-    my $errorTMinus1 = $self->{y}[0] - ($self->{intercept} + $self->{slope}
-        * $self->{x}[0]);
-    for (my $i = 1; $i < $self->{numXY}; ++$i) {
-        my $error = $self->{y}[$i] - ($self->{intercept} + $self->{slope}
-            * $self->{x}[$i]);
-        $sumErrDiff += ($error - $errorTMinus1) ** 2;
-        $errorTMinus1 = $error;
+    unless (defined $self->{durbinWatson}) {
+        $self->regress() or return;
+        my $sumErrDiff = 0;
+        my $errorTMinus1 = $self->{y}[0] - ($self->{intercept} + $self->{slope}
+            * $self->{x}[0]);
+        for (my $i = 1; $i < $self->{numXY}; ++$i) {
+            my $error = $self->{y}[$i] - ($self->{intercept} + $self->{slope}
+                * $self->{x}[$i]);
+            $sumErrDiff += ($error - $errorTMinus1) ** 2;
+            $errorTMinus1 = $error;
+        }
+        $self->{durbinWatson} = $self->sumSqErrors() > 0 ?
+            $sumErrDiff / $self->sumSqErrors() : 0;
     }
-    $self->{durbinWatson} = $self->sumSqErrors() > 0 ?
-        $sumErrDiff / $self->sumSqErrors() : 0;
     return $self->{durbinWatson};
 }
 
@@ -89,7 +89,7 @@ sub meanSqError {
 # 
     my $self = shift;
     unless (defined $self->{meanSqError}) {
-        $self->regressOK() or return;
+        $self->regress() or return;
         $self->{meanSqError} = $self->sumSqErrors() / $self->{numXY};
     }
     return $self->{meanSqError};
@@ -100,52 +100,43 @@ sub predictedYs {
 # Purpose: Return the predicted y values
 # 
     my $self = shift;
-    $self->regressOK() or return;
-    return @{$self->{predictedYs}} if defined $self->{predictedYs};
-    $self->{predictedYs} = [];
-    for (my $i = 0; $i < $self->{numXY}; ++$i) {
-        $self->{predictedYs}->[$i] = $self->{intercept} 
-            + $self->{slope} * $self->{x}[$i];
+    unless (defined $self->{predictedYs}) {
+        $self->regress() or return;
+        $self->{predictedYs} = [];
+        for (my $i = 0; $i < $self->{numXY}; ++$i) {
+            $self->{predictedYs}[$i] = $self->{intercept} 
+                + $self->{slope} * $self->{x}[$i];
+        }
     }
     return @{$self->{predictedYs}};
 }
 
 sub regress {
 #
-# Purpose: Weighted or unweighted least squares 2-D line fit
+# Purpose: Do weighted or unweighted least squares 2-D line fit (if needed)
 # 
     my $self = shift;
     return $self->{regressOK} if $self->{doneRegress};
     unless ($self->{gotData}) {
-        $self->{hush} or carp "No valid data input - can't do regression";
+        carp "No valid data input - can't do regression" unless $self->{hush};
         return 0;
     } 
     my ($sumX, $sumY, $sumYY, $sumXY);
     ($sumX, $sumY, $self->{sumXX}, $sumYY, $sumXY) = $self->computeSums();
     $self->{sumSqDevX} = $self->{sumXX} - $sumX ** 2 / $self->{numXY};
-    $self->{sumSqDevY} = $sumYY - $sumY ** 2 / $self->{numXY};
-    $self->{sumSqDevXY} = $sumXY - $sumX * $sumY / $self->{numXY};
     if ($self->{sumSqDevX} != 0) {
+        $self->{sumSqDevY} = $sumYY - $sumY ** 2 / $self->{numXY};
+        $self->{sumSqDevXY} = $sumXY - $sumX * $sumY / $self->{numXY};
         $self->{slope} = $self->{sumSqDevXY} / $self->{sumSqDevX};
         $self->{intercept} = ($sumY - $self->{slope} * $sumX) / $self->{numXY};
         $self->{regressOK} = 1;
     } else {
-        $self->{slope} = $self->{intercept} = undef;
-        $self->{hush}
-            or carp "Can't fit line - sum of squared deviations of X = 0";
+        carp "Can't fit line - sum of squared deviations of X = 0" 
+            unless $self->{hush};
+        $self->{sumXX} = $self->{sumSqDevX} = undef;
         $self->{regressOK} = 0;
     }
     $self->{doneRegress} = 1;
-    return $self->{regressOK};
-}
-
-sub regressOK {
-#
-# Purpose: Do regression if needed; check that regression was successful
-#          (private method)
-# 
-    my $self = shift;
-    unless ($self->{doneRegress}) { $self->regress() }
     return $self->{regressOK};
 }
 
@@ -154,12 +145,13 @@ sub residuals {
 # Purpose: Return the predicted Y values minus the observed Y values
 # 
     my $self = shift;
-    return @{$self->{residuals}} if defined $self->{residuals};
-    $self->regressOK() or return;
-    $self->{residuals} = [];
-    for (my $i = 0; $i < $self->{numXY}; ++$i) {
-        $self->{residuals}->[$i] = $self->{y}[$i] - ($self->{intercept} 
-            + $self->{slope} * $self->{x}[$i]);
+    unless (defined $self->{residuals}) {
+        $self->regress() or return;
+        $self->{residuals} = [];
+        for (my $i = 0; $i < $self->{numXY}; ++$i) {
+            $self->{residuals}[$i] = $self->{y}[$i] - ($self->{intercept} 
+                + $self->{slope} * $self->{x}[$i]);
+        }
     }
     return @{$self->{residuals}};
 }
@@ -169,10 +161,11 @@ sub rSquared {
 # Purpose: Return the correlation coefficient
 # 
     my $self = shift;
-    return $self->{rSquared} if defined $self->{rSquared};
-    $self->regressOK() or return;
-    my $denom = $self->{sumSqDevX} * $self->{sumSqDevY};
-    $self->{rSquared} = $denom != 0 ? $self->{sumSqDevXY} ** 2 / $denom : 1;
+    unless (defined $self->{rSquared}) {
+        $self->regress() or return;
+        my $denom = $self->{sumSqDevX} * $self->{sumSqDevY};
+        $self->{rSquared} = $denom != 0 ? $self->{sumSqDevXY} ** 2 / $denom : 1;
+    }
     return $self->{rSquared};
 }
 
@@ -181,14 +174,16 @@ sub setData {
 # Purpose: Initialize (x,y) values and optional weights
 # 
     my ($self, $x, $y, $weights) = @_;
-    $self->{doneRegress} = $self->{regressOK} = 0;
+    $self->{doneRegress} = 0;
     $self->{x} = $self->{y} = $self->{numXY} = $self->{weight} 
         = $self->{intercept} = $self->{slope} = $self->{rSquared} 
         = $self->{sigma} = $self->{durbinWatson} = $self->{meanSqError} 
         = $self->{sumSqErrors} = $self->{tStatInt} = $self->{tStatSlope} 
-        = $self->{predictedYs} = $self->{residuals} = undef;
-    unless (@$x > 1) { 
-        $self->{hush} or carp "Must input more than one data point!";
+        = $self->{predictedYs} = $self->{residuals} = $self->{sumXX} 
+        = $self->{sumSqDevX} = $self->{sumSqDevY} = $self->{sumSqDevXY} 
+        = undef;
+    if (@$x < 2) { 
+        carp "Must input more than one data point!" unless $self->{hush};
         return 0;
     }
     $self->{numXY} = @$x;
@@ -201,8 +196,8 @@ sub setData {
             push @{$self->{y}}, $xy->[1]; 
         }
     } else {
-        unless (@$x == @$y) { 
-            $self->{hush} or carp "Length of x and y arrays must be equal!";
+        if (@$x != @$y) { 
+            carp "Length of x and y arrays must be equal!" unless $self->{hush};
             return 0;
         }
         $self->setWeights($weights) or return 0;
@@ -226,21 +221,21 @@ sub setWeights {
     my ($self, $weights) = @_;
     return 1 unless defined $weights;
     if (@$weights != $self->{numXY}) {
-        $self->{hush}
-            or carp "Length of weight array must equal length of data array!";
+        carp "Length of weight array must equal length of data array!"
+            unless $self->{hush};
         return 0;
     }
     if ($self->{validate}) { $self->validWeights($weights) or return 0 } 
     my $sumW = 0;
     foreach my $weight (@$weights) {
         if ($weight < 0) {
-            $self->{hush} or carp "Weights must be non-negative numbers!";
+            carp "Weights must be non-negative numbers!" unless $self->{hush};
             return 0;
         }
         $sumW += $weight;
     }
     if ($sumW == 0) {
-        $self->{hush} or carp "Weights can't all equal zero!";
+        carp "Weights can't all equal zero!" unless $self->{hush};
         return 0;
     }
     my $factor = @$weights / $sumW;
@@ -255,10 +250,11 @@ sub sigma {
 #          error term
 # 
     my $self = shift;
-    return $self->{sigma} if defined $self->{sigma};
-    $self->regressOK() or return;
-    $self->{sigma} = $self->{numXY} > 2 ? 
-        sqrt($self->sumSqErrors() / ($self->{numXY} - 2)) : 0;
+    unless (defined $self->{sigma}) {
+        $self->regress() or return;
+        $self->{sigma} = $self->{numXY} > 2 ? 
+            sqrt($self->sumSqErrors() / ($self->{numXY} - 2)) : 0;
+    }
     return $self->{sigma};
 }
 
@@ -268,7 +264,7 @@ sub sumSqErrors {
 # 
     my $self = shift;
     unless (defined $self->{sumSqErrors}) {
-        $self->regressOK() or return;
+        $self->regress() or return;
         $self->{sumSqErrors} = $self->{sumSqDevY} - $self->{sumSqDevX}
             * $self->{slope} ** 2;
         if ($self->{sumSqErrors} < 0) { $self->{sumSqErrors} = 0 } 
@@ -282,14 +278,14 @@ sub tStatistics {
 # 
     my $self = shift;
     unless (defined $self->{tStatInt} and defined $self->{tStatSlope}) {
-        $self->regressOK() or return;
-        my $biasEstInt = $self->sigma() * sqrt($self->{sumXX} 
+        $self->regress() or return;
+        my $biasEstimateInt = $self->sigma() * sqrt($self->{sumXX} 
             / ($self->{sumSqDevX} * $self->{numXY}));
-        $self->{tStatInt} = $biasEstInt != 0 ?
-            $self->{intercept} / $biasEstInt : 0;
-        my $biasEstSlope = $self->sigma() / sqrt($self->{sumSqDevX});
-        $self->{tStatSlope} = $biasEstSlope != 0 ? 
-            $self->{slope} / $biasEstSlope : 0;
+        $self->{tStatInt} = $biasEstimateInt != 0 ?
+            $self->{intercept} / $biasEstimateInt : 0;
+        my $biasEstimateSlope = $self->sigma() / sqrt($self->{sumSqDevX});
+        $self->{tStatSlope} = $biasEstimateSlope != 0 ? 
+            $self->{slope} / $biasEstimateSlope : 0;
     }
     return ($self->{tStatInt}, $self->{tStatSlope});
 }
@@ -301,23 +297,25 @@ sub validData {
     my $self = shift;
     for (my $i = 0; $i < $self->{numXY}; ++$i) {
         if (not defined $self->{x}[$i]) {
-            $self->{hush} or carp "Input x[$i] is not defined";
+            carp "Input x[$i] is not defined" unless $self->{hush};
             return 0;
         }
         if ($self->{x}[$i] !~
             /^([+-]?)(?=\d|\.\d)\d*(\.\d*)?([Ee]([+-]?\d+))?$/)
         {
-            $self->{hush} or carp "Input x[$i] is not a number: $self->{x}[$i]";
+            carp "Input x[$i] is not a number: $self->{x}[$i]" 
+                unless $self->{hush};
             return 0;
         }
         if (not defined $self->{y}[$i]) {
-            $self->{hush} or carp "Input y[$i] is not defined";
+            carp "Input y[$i] is not defined" unless $self->{hush};
             return 0;
         }
         if ($self->{y}[$i] !~
             /^([+-]?)(?=\d|\.\d)\d*(\.\d*)?([Ee]([+-]?\d+))?$/)
         {
-            $self->{hush} or carp "Input y[$i] is not a number: $self->{y}[$i]";
+            carp "Input y[$i] is not a number: $self->{y}[$i]"
+                unless $self->{hush};
             return 0;
         }
     }
@@ -331,14 +329,14 @@ sub validWeights {
     my ($self, $weights) = @_;
     for (my $i = 0; $i < @$weights; ++$i) {
         if (not defined $weights->[$i]) {
-            $self->{hush} or carp "Input weights[$i] is not defined";
+            carp "Input weights[$i] is not defined" unless $self->{hush};
             return 0;
         }
         if ($weights->[$i]
             !~ /^([+-]?)(?=\d|\.\d)\d*(\.\d*)?([Ee]([+-]?\d+))?$/)
         {
-            $self->{hush} 
-                or carp "Input weights[$i] is not a number: $weights->[$i]";
+            carp "Input weights[$i] is not a number: $weights->[$i]"
+                unless $self->{hush};
             return 0;
         }
     }
@@ -346,6 +344,7 @@ sub validWeights {
 }
 
 1;
+
 __END__
 
 =head1 NAME
@@ -372,16 +371,16 @@ Statistics::LineFit - Least squares line fit, weighted or unweighted
 The Statistics::LineFit module does weighted or unweighted least-squares
 line fitting to two-dimensional data (y = a + b * x).  (This is also called
 linear regression.)  In addition to the slope and y-intercept, the module
-can return the Durbin-Watson statistic, the mean squared error, sigma,
-t statistics, the predicted y values and the residuals of the y values.
+can return the Durbin-Watson statistic, mean squared error, sigma,
+t statistics, predicted y values and residuals of the y values.
 See the METHODS section for a description of these statistics.  See the
 SEE ALSO section for a comparison of this module to Statistics::OLS.
 
-The module accepts input in separate x and y arrays or a single 2-D array
-(an array of arrayrefs).  The optional weights are input in a separate
-array.  The module can optionally verify that the input data and weights
-are valid numbers.  If weights are input, the returned statistics all
-reflect the effect of the weights.  For example, meanSqError() returns
+The module accepts input data in separate x and y arrays or a single
+2-D array (an array of arrayrefs).  The optional weights are input in a
+separate array.  The module can optionally verify that the input data and
+weights are valid numbers.  If weights are input, the returned statistics
+all reflect the effect of the weights.  For example, meanSqError() returns
 the weighted mean squared error and rSquared() returns the weighted
 correlation coefficient.
 
@@ -398,8 +397,8 @@ regress() method to check the status of the regression.
 The decision to use or not use weighting could be made using your a priori
 knowledge of the data or using supplemental data.  In the presence
 of non-random noise weighting can degrade the solution.  Weighting is a
-good option if certain measurements are suspect or less relevant (e.g.,
-older terms in a time series, data from a suspect source).
+good option if some points are suspect or less relevant (e.g., older terms
+in a time series, data from a suspect source).
 
 =head1 ALGORITHM
 
@@ -417,9 +416,11 @@ can be expressed in terms of the means, variances and covariances of x and y:
 
 If you use weights, each term in the sums is multiplied by the value
 of the weight for that index.  Note that a and b are undefined if
-all the x values are the same.  Statistics::LineFit uses equations that
-are mathematically equivalent to the above equations and computationally
-more efficient.  The module runs in O(N) (linear time).
+all the x values are the same.
+
+Statistics::LineFit uses equations that are mathematically equivalent to
+the above equations and computationally more efficient.  The module runs
+in O(N) (linear time).
 
 =head1 EXAMPLES
 
@@ -592,30 +593,33 @@ least-squares line fit to the data for the given parameterization
 
 On a 32-bit system the results are accurate to about 11 significant digits,
 depending on the input data.  Many of the installation tests will fail
-on a system with word lengths of 16 bits or fewer.
+on a system with word lengths of 16 bits or fewer.  (You might want to
+upgrade your old Intel 80286 IBM PC.)
 
 =head1 SEE ALSO
 
  Mendenhall, W., and Sincich, T.L., 2003, A Second Course in Statistics:
    Regression Analysis, 6th ed., Prentice Hall.
  The man page for perl(1).
- The CPAN module Statistics::OLS.
+ The CPAN modules Statistics::OLS, Statistics::GaussHelmert and 
+   Statistics::Regression.
 
-Statistics::LineFit was inspired by and borrows some ideas from the
-venerable Statistics::OLS module.  The significant differences between
-Statistics::LineFit and Statistics::OLS are:
+Statistics::LineFit is simpler to use than Statistics::GaussHelmert or
+Statistics::Regression.  Statistics::LineFit was inspired by and borrows
+some ideas from the venerable Statistics::OLS module.  The significant
+differences between Statistics::LineFit and Statistics::OLS are:
 
 =over 4
 
 =item B<Statistics::LineFit is more robust.>
 
-For certain datasets Statistics::OLS will return incorrect results (e.g.,
-only two data points).  Statistics::OLS does not deep copy its input arrays,
-which can lead to subtle bugs.  The Statistics::OLS installation test has
-only one test and does not verify that the regression returned correct
-results.  In contrast, Statistics::LineFit has over 200 installation tests
-that use various datasets / calling sequences and it verifies the accuracy
-of the regression to within 1.0e-10.
+For certain datasets Statistics::OLS returns incorrect results.
+Statistics::OLS does not deep copy its input arrays, which can lead
+to subtle bugs.  The Statistics::OLS installation test has only one
+test and does not verify that the regression returned correct results.
+In contrast, Statistics::LineFit has over 200 installation tests that use
+various datasets / calling sequences and it verifies the accuracy of the
+regression to within 1.0e-10.
 
 =item B<Statistics::LineFit is faster.>
 
@@ -627,7 +631,7 @@ and 2.4 for array lengths of 5, 100 and 10000, respectively.
 
 Statistics::OLS lacks this option.
 
-=item B<Statistics::LineFit has a better (or at least different) interface.>
+=item B<Statistics::LineFit has a better interface.>
 
 Once you call the Statistics::LineFit::setData() method, you can call the
 other methods in any order and call methods multiple times without invoking
@@ -644,7 +648,7 @@ The documentation for Statistics::LineFit is more detailed and complete.
 
 =head1 VERSION
 
-This document describes Statistics::LineFit version 0.02.  The comments
+This document describes Statistics::LineFit version 0.03.  The comments
 about Statistics::OLS refer to version 0.07 of that module.
 
 =head1 AUTHOR
