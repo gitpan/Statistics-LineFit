@@ -8,7 +8,7 @@ BEGIN {
         @EXPORT      = @EXPORT_OK = qw();
         %EXPORT_TAGS = ();
         @ISA         = qw(Exporter);
-        $VERSION     = 0.05;
+        $VERSION     = 0.06;
 }
 
 sub new {
@@ -30,7 +30,9 @@ sub coefficients {
 # Purpose: Return the slope and intercept from least squares line fit
 # 
     my $self = shift;
-    $self->regress() or return;
+    unless (defined $self->{intercept} and defined $self->{slope}) {
+        $self->regress() or return;
+    }
     return ($self->{intercept}, $self->{slope});
 }
 
@@ -136,8 +138,7 @@ sub regress {
         $self->{intercept} = ($sumY - $self->{slope} * $sumX) / $self->{numXY};
         $self->{regressOK} = 1;
     } else {
-        carp "Can't fit line - sum of squared deviations of X = 0" 
-            unless $self->{hush};
+        carp "Can't fit line when x values are all equal" unless $self->{hush};
         $self->{sumXX} = $self->{sumSqDevX} = undef;
         $self->{regressOK} = 0;
     }
@@ -231,16 +232,17 @@ sub setWeights {
         return 0;
     }
     if ($self->{validate}) { $self->validWeights($weights) or return 0 } 
-    my $sumW = 0;
+    my $sumW = my $numNonZero = 0;
     foreach my $weight (@$weights) {
         if ($weight < 0) {
             carp "Weights must be non-negative numbers!" unless $self->{hush};
             return 0;
         }
         $sumW += $weight;
+        if ($weight != 0) { ++$numNonZero }
     }
-    if ($sumW == 0) {
-        carp "Weights can't all equal zero!" unless $self->{hush};
+    if ($numNonZero < 2) {
+        carp "At least two weights must be nonzero!" unless $self->{hush};
         return 0;
     }
     my $factor = @$weights / $sumW;
@@ -374,36 +376,33 @@ Statistics::LineFit - Least squares line fit, weighted or unweighted
 =head1 DESCRIPTION
 
 The Statistics::LineFit module does weighted or unweighted least-squares
-line fitting to two-dimensional data (y = a + b * x).  (This is also
-called linear regression.)  In addition to the slope and y-intercept, the
-module can return the square of the correlation coefficient (R squared),
-the Durbin-Watson statistic, mean squared error, sigma, t statistics,
-predicted y values and residuals of the y values.  See the METHODS section
-for a description of these statistics.  See the SEE ALSO section for a
-comparison of this module to Statistics::OLS.
+line fitting to two-dimensional data (y = a + b * x).  (This is also called
+linear regression.)  In addition to the slope and y-intercept, the module
+can return the square of the correlation coefficient (R squared), the
+Durbin-Watson statistic, the mean squared error, sigma, the t statistics,
+the predicted y values and the residuals of the y values.  (See the METHODS
+section for a description of these statistics.)
 
 The module accepts input data in separate x and y arrays or a single
 2-D array (an array of arrayrefs).  The optional weights are input in a
 separate array.  The module can optionally verify that the input data and
-weights are valid numbers.  If weights are input, the following statistics
-are weighted: the correlation coefficient, the Durbin-Watson statistic,
-the mean squared error, sigma and the t statistics.
+weights are valid numbers.  If weights are input, the line fit minimizes
+the weighted sum of the squared errors and the following statistics are
+weighted: the correlation coefficient, the Durbin-Watson statistic, the
+mean squared error, sigma and the t statistics.
 
 The module is state-oriented and caches its results.  Once you call the
 setData() method, you can call the other methods in any order or call a
-method several times without invoking redundant calculations.
+method several times without invoking redundant calculations.  After calling
+setData(), you can modify the input data or weights without affecting the
+module's results.
 
-The regression fails if the x values are all the same.  This is an inherent
-limit to fitting a line of the form y = a + b * x.  In this case, the
-module issues an error message and methods that return statistical values
-will return undefined values.  You can also use the return value of the
-regress() method to check the status of the regression.
 
-The decision to use or not use weighting could be made using your a priori
-knowledge of the data or using supplemental data.  In the presence
-of non-random noise weighting can degrade the solution.  Weighting is a
-good option if some points are suspect or less relevant (e.g., older terms
-in a time series, data from a suspect source).
+The decision to use or not use weighting could be made using your a
+priori knowledge of the data or using supplemental data.  If the data is
+sparse or contains non-random noise, weighting can degrade the solution.
+Weighting is a good option if some points are suspect or less relevant (e.g.,
+older terms in a time series, points that are known to have more noise).
 
 =head1 ALGORITHM
 
@@ -421,14 +420,40 @@ can be expressed in terms of the means, variances and covariances of x and y:
 
 Note that a and b are undefined if all the x values are the same.
 
-If you use weights, each term in the above sums is multiplied by the value
-of the weight for that index.  The program normalizes the weights so that
-the sum of the weights equals the number of points; this minimizes the
-differences between the weighted and unweighted equations.
+If you use weights, each term in the above sums is multiplied by the
+value of the weight for that index.  The program normalizes the weights
+(after copying the input values) so that the sum of the weights equals
+the number of points.  This minimizes the differences between the weighted
+and unweighted equations.
 
 Statistics::LineFit uses equations that are mathematically equivalent to
 the above equations and computationally more efficient.  The module runs
 in O(N) (linear time).
+
+=head1 LIMITATIONS
+
+The regression fails if the input x values are all equal or the only unequal
+x values have zero weights.  This is an inherent limit to fitting a line of
+the form y = a + b * x.  In this case, the module issues an error message
+and methods that return statistical values will return undefined values.
+You can also use the return value of the regress() method to check the
+status of the regression.
+
+As the sum of the squared deviations of the x values approaches zero,
+the module's results becomes sensitive to the precision of floating point
+operations on the host system.
+
+If the x values are not all the same and the apparent "best fit" line is
+vertical, the module will fit a horizontal line.  For example, an input of
+(1, 1), (1, 7), (2, 3), (2, 5) returns a slope of zero, an intercept of 4
+and an R squared of zero.  This is correct behavior because this line is the
+best least-squares fit to the data for the given parameterization 
+(y = a + b * x).
+
+On a 32-bit system the results are accurate to about 11 significant digits,
+depending on the input data.  Many of the installation tests will fail
+on a system with word lengths of 16 bits or fewer.  (You might want to
+upgrade your old 80286 IBM PC.)
 
 =head1 EXAMPLES
 
@@ -444,14 +469,13 @@ in O(N) (linear time).
      print "Slope: $slope  Y-intercept: $intercept\n";
  }
 
-=head2 Multiple calls with the same object, validate input:
+=head2 Multiple calls with same object, validate input, suppress error messages:
 
  use Statistics::LineFit;
- $lineFit = Statistics::LineFit->new(1);
+ $lineFit = Statistics::LineFit->new(1, 1);
  while (1) {
      @xy = read2Dxy();  # User-supplied subroutine
-     last unless @xy;
-     next unless $lineFit->setData(\@xy);
+     $lineFit->setData(\@xy);
      ($intercept, $slope) = $lineFit->coefficients();
      if (defined $intercept) {
          print "Slope: $slope  Y-intercept: $intercept\n";
@@ -478,7 +502,7 @@ of the regress() method to check the status of the regression.
  $validate = 1 -> Verify input data is numeric (slower execution)
              0 -> Don't verify input data (default, faster execution)
  $hush = 1 -> Suppress error messages
-       = 0 -> Enable warning messages (default)
+       = 0 -> Enable error messages (default)
 
 =head2 coefficients() - Return the slope and y intercept
 
@@ -516,8 +540,8 @@ The returned list is undefined if the regression fails.
  $lineFit->regress() or die "Regression failed"
 
 You don't need to call this method because it is invoked by the other
-methods as needed.  You can call regress() at any time to get the status
-of the regression for the current data.
+methods as needed.  After you call setData(), you can call regress()
+at any time to get the status of the regression for the current data.
 
 =head2 residuals() - Return predicted y values minus input y values
 
@@ -546,21 +570,27 @@ input, the return value is the weighted correlation coefficient.
  $lineFit->setData(\@xy) or die "Invalid regression data";
  $lineFit->setData(\@xy, \@weights) or die "Invalid regression data";
 
-If the new() method was called with validate = 1, setData() will verify
-that the data and weights are valid numbers.  @xy is an array of arrayrefs;
-x values are $xy[$i][0], y values are $xy[$i][1].  The module does not
-access any indices greater than $xy[$i][1], so the arrayrefs can point
-to arrays that are longer than two elements.
+@xy is an array of arrayrefs; x values are $xy[$i][0], y values are
+$xy[$i][1].  (The module does not access any indices greater than $xy[$i][1],
+so the arrayrefs can point to arrays that are longer than two elements.)
+The method identifies the difference between the first and fourth calling
+signatures by examining the first argument.
 
-The optional weights array must be the same length as the data arrays.
-The weights must be non-negative numbers.  Only the relative sizes of the
-weights is significant: the program normalizes the weights so that the sum
-of the weights equals the number of points.  If you want to do multiple
-line fits using the same weights, the weights must be passed to each call
-to setData().
+The optional weights array must be the same length as the data array(s).
+The weights must be non-negative numbers; at least two of the weights
+must be nonzero.  Only the relative size of the weights is significant:
+the program normalizes the weights (after copying the input values) so
+that the sum of the weights equals the number of points.  If you want to
+do multiple line fits using the same weights, the weights must be passed
+to each call to setData().
 
-Once you successfully call setData(), the next call to any method other
-than new() or setData() invokes the regression.
+The method will return zero if the array lengths don't match, there are
+less than two data points, any weights are negative or less than two of
+the weights are nonzero. If the new() method was called with validate = 1,
+the method will also verify that the data and weights are valid numbers.
+Once you successfully call setData(), the next call to any method other than
+new() or setData() invokes the regression.  You can modify the input data
+or weights after calling setData() without affecting the module's results.
 
 =head2 sigma() - Return the standard error of the estimate
 
@@ -585,26 +615,6 @@ large and positive, large and negative).
 The returned list is undefined if the regression fails.  If weights 
 are input, the returned values are the weighted t statistics.
 
-=head1 LIMITATIONS
-
-The module cannot fit a line to a set of points that have the same x values.
-This is an inherent limit to fitting a line of the form y = a + b * x.
-As the sum of the squared deviations of the x values approaches zero,
-the module's results becomes sensitive to the precision of floating point
-operations on the host system.
-
-If the x values are not all the same and the apparent "best fit" line is
-vertical, the module will fit a horizontal line.  For example, an input of
-(1, 1), (1, 7), (2, 3), (2, 5) returns a slope of zero, an intercept of 4
-and an R squared of zero.  This is correct behavior because this line is the
-best least-squares fit to the data for the given parameterization 
-(y = a + b * x).
-
-On a 32-bit system the results are accurate to about 11 significant digits,
-depending on the input data.  Many of the installation tests will fail
-on a system with word lengths of 16 bits or fewer.  (You might want to
-upgrade your old 80286 IBM PC.)
-
 =head1 SEE ALSO
 
  Mendenhall, W., and Sincich, T.L., 2003, A Second Course in Statistics:
@@ -614,9 +624,9 @@ upgrade your old 80286 IBM PC.)
    Statistics::Regression.
 
 Statistics::LineFit is simpler to use than Statistics::GaussHelmert or
-Statistics::Regression.  Statistics::LineFit was inspired by and borrows
-some ideas from the venerable Statistics::OLS module.  The significant
-differences between Statistics::LineFit and Statistics::OLS are:
+Statistics::Regression.  Statistics::LineFit was inspired by and borrows some
+ideas from the venerable Statistics::OLS module.  The significant differences
+between Statistics::LineFit and Statistics::OLS (version 0.07) are:
 
 =over 4
 
@@ -625,7 +635,7 @@ differences between Statistics::LineFit and Statistics::OLS are:
 Statistics::OLS returns incorrect results for certain input datasets. 
 Statistics::OLS does not deep copy its input arrays, which can lead
 to subtle bugs.  The Statistics::OLS installation test has only one
-test and does not verify that the regression returned correct results.
+test and does not verify that the regression returns correct results.
 In contrast, Statistics::LineFit has over 200 installation tests that use
 various datasets/calling sequences to verify the accuracy of the
 regression to within 1.0e-10.
@@ -654,11 +664,6 @@ more compliant with Perl coding standards than the code in Statistics::OLS.
 The documentation for Statistics::LineFit is more detailed and complete.
 
 =back
-
-=head1 VERSION
-
-This document describes Statistics::LineFit version 0.03.  The comments
-about Statistics::OLS refer to version 0.07 of that module.
 
 =head1 AUTHOR
 

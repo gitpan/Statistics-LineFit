@@ -26,4 +26,7 @@ Revision history for Perl module Statistics::LineFit
 0.05 Tue May 18 13:39:13 PST 2004
      No significant changes.  Minor revisions to documentation.
 
+0.06 Tue May 25 10:54:04 PST 2004
+     Added check to verify that at least two of the weights are nonzero.
+     Minor revisions to documentation.
 

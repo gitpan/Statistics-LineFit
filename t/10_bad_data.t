@@ -43,8 +43,8 @@ eval {
         'setData(\@x, \@y, \@weights)');
     is($lineFit->setData(\@xy, \@weights), 0, 'setData(\@xy, \@weights)');
 
-# Weights can't all equal zero
-    @weights = (0, 0, 0);
+# Weights must contain at least two nonzero values
+    @weights = (1, 0, 0);
     is($lineFit->setData(\@x, \@y, \@weights), 0, 
         'setData(\@x, \@y, \@weights)');
     is($lineFit->setData(\@xy, \@weights), 0, 'setData(\@xy, \@weights)');

@@ -6,7 +6,8 @@ values approaches zero.
 Test and document the sensitivity of the results to random and Gaussian
 noise.
 
-Abstract this module into an inheritance hierarchy that could do
-N-dimensional line fitting, curve fitting, cubic splines fitting,
-non-linear regression, etc.
+Abstract this module into a class hierarchy that can do N-dimensional line
+fitting, curve fitting, cubic splines fitting, non-linear regression, etc.
+(This would require major coordination / major rewrites with / of the other 
+Statistics:: modules.)
 
