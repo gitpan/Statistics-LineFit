@@ -6,3 +6,5 @@ Revision history for Perl module Statistics::LineFit
 0.01 Mon Nov 17 15:27:57 PST 2003
     Release to CPAN.
 
+0.02 Tue Nov 18 12:22:45 PST 2003
+    Fixed format bug in POD documentation.

@@ -9,7 +9,7 @@ BEGIN {
         @EXPORT_OK   = qw ();
         %EXPORT_TAGS = ();
         @ISA         = qw (Exporter);
-        $VERSION     = 0.01;
+        $VERSION     = 0.02;
 }
 
 sub new {
@@ -406,22 +406,14 @@ older terms in a time series, data from a suspect source).
 The least-square line is the line that minimizes the sum of the squares
 of the y residuals:
 
-=begin text
-
  Minimize SUM((y[i] - (a + b * x[i])) ** 2)
-
-=end text
 
 Setting the parial derivatives of a and b to zero yields a solution that
 can be expressed in terms of the means, variances and covariances of x and y:
 
-=begin text
-
  b = SUM((x[i] - meanX) * (y[i] - meanY)) / SUM((x[i] - meanX) ** 2) 
 
  a = meanY - b * meanX
-
-=end text
 
 If you use weights, each term in the sums is multiplied by the value
 of the weight for that index.  Note that a and b are undefined if
@@ -433,8 +425,6 @@ more efficient.  The module runs in O(N) (linear time).
 
 =head2 Alternate calling sequence:
 
-=begin text
-
  use Statistics::LineFit;
  $lineFit = Statistics::LineFit->new();
  $lineFit->setData(\@x, \@y) or die "Invalid regression data\n";
@@ -445,11 +435,7 @@ more efficient.  The module runs in O(N) (linear time).
      print "Slope: $slope  Y-intercept: $intercept\n";
  }
 
-=end text
-
 =head2 Multiple calls with the same object, validate input:
-
-=begin text
 
  use Statistics::LineFit;
  $lineFit = Statistics::LineFit->new(1);
@@ -462,8 +448,6 @@ more efficient.  The module runs in O(N) (linear time).
          print "Slope: $slope  Y-intercept: $intercept\n";
      } 
  }
-
-=end text
 
 =head1 METHODS
 
@@ -660,7 +644,7 @@ The documentation for Statistics::LineFit is more detailed and complete.
 
 =head1 VERSION
 
-This document describes Statistics::LineFit version 0.01.  The comments
+This document describes Statistics::LineFit version 0.02.  The comments
 about Statistics::OLS refer to version 0.07 of that module.
 
 =head1 AUTHOR

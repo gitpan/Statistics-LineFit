@@ -285,7 +285,7 @@ SEE ALSO
         more detailed and complete.
 
 VERSION
-    This document describes Statistics::LineFit version 0.01. The comments
+    This document describes Statistics::LineFit version 0.02. The comments
     about Statistics::OLS refer to version 0.07 of that module.
 
 AUTHOR
