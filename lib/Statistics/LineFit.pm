@@ -8,7 +8,7 @@ BEGIN {
         @EXPORT      = @EXPORT_OK = qw();
         %EXPORT_TAGS = ();
         @ISA         = qw(Exporter);
-        $VERSION     = 0.04;
+        $VERSION     = 0.05;
 }
 
 sub new {
@@ -114,6 +114,11 @@ sub predictedYs {
 sub regress {
 #
 # Purpose: Do weighted or unweighted least squares 2-D line fit (if needed)
+#
+# Description:
+# The equations below apply to both the weighted and unweighted fit: the
+# weights are normalized in setWeights(), so the sum of the weights is
+# equal to numXY.
 # 
     my $self = shift;
     return $self->{regressOK} if $self->{doneRegress};
@@ -216,7 +221,7 @@ sub setData {
 
 sub setWeights {
 #
-# Purpose: Initialize weighting factors for the line fit (private method)
+# Purpose: Normalize and initialize line fit weighting factors (private method)
 # 
     my ($self, $weights) = @_;
     return 1 unless defined $weights;
@@ -369,20 +374,20 @@ Statistics::LineFit - Least squares line fit, weighted or unweighted
 =head1 DESCRIPTION
 
 The Statistics::LineFit module does weighted or unweighted least-squares
-line fitting to two-dimensional data (y = a + b * x).  (This is also called
-linear regression.)  In addition to the slope and y-intercept, the module
-can return the Durbin-Watson statistic, mean squared error, sigma,
-t statistics, predicted y values and residuals of the y values.
-See the METHODS section for a description of these statistics.  See the
-SEE ALSO section for a comparison of this module to Statistics::OLS.
+line fitting to two-dimensional data (y = a + b * x).  (This is also
+called linear regression.)  In addition to the slope and y-intercept, the
+module can return the square of the correlation coefficient (R squared),
+the Durbin-Watson statistic, mean squared error, sigma, t statistics,
+predicted y values and residuals of the y values.  See the METHODS section
+for a description of these statistics.  See the SEE ALSO section for a
+comparison of this module to Statistics::OLS.
 
 The module accepts input data in separate x and y arrays or a single
 2-D array (an array of arrayrefs).  The optional weights are input in a
 separate array.  The module can optionally verify that the input data and
-weights are valid numbers.  If weights are input, the returned statistics
-all reflect the effect of the weights.  For example, meanSqError() returns
-the weighted mean squared error and rSquared() returns the weighted
-correlation coefficient.
+weights are valid numbers.  If weights are input, the following statistics
+are weighted: the correlation coefficient, the Durbin-Watson statistic,
+the mean squared error, sigma and the t statistics.
 
 The module is state-oriented and caches its results.  Once you call the
 setData() method, you can call the other methods in any order or call a
@@ -414,9 +419,12 @@ can be expressed in terms of the means, variances and covariances of x and y:
 
  a = meanY - b * meanX
 
-If you use weights, each term in the sums is multiplied by the value
-of the weight for that index.  Note that a and b are undefined if
-all the x values are the same.
+Note that a and b are undefined if all the x values are the same.
+
+If you use weights, each term in the above sums is multiplied by the value
+of the weight for that index.  The program normalizes the weights so that
+the sum of the weights equals the number of points; this minimizes the
+differences between the weighted and unweighted equations.
 
 Statistics::LineFit uses equations that are mathematically equivalent to
 the above equations and computationally more efficient.  The module runs
@@ -476,7 +484,7 @@ of the regress() method to check the status of the regression.
 
  ($intercept, $slope) = $lineFit->coefficients();
 
-The returned values are undefined if the regression fails.
+The returned list is undefined if the regression fails.
 
 =head2 durbinWatson() - Return the Durbin-Watson statistic
 
@@ -517,16 +525,16 @@ of the regression for the current data.
 
 The returned list is undefined if the regression fails.
 
-=head2 rSquared() - Return the correlation coefficient
+=head2 rSquared() - Return the square of the correlation coefficient
 
  $rSquared = $lineFit->rSquared();
 
-R squared, also called the correlation coefficient, is a measure of
-goodness-of-fit.  It is the fraction of the variation in Y that can be
-attributed to the variation in X.  A perfect fit will have an R squared
-of 1; an attempt to fit a line to the vertices of a regular polygon will
-yield an R squared of zero.  Graphical displays of data with an R squared
-of less than about 0.1 do not show a visible linear trend.
+R squared, also called the square of the Pearson product-moment correlation
+coefficient, is a measure of goodness-of-fit.  It is the fraction of the
+variation in Y that can be attributed to the variation in X.  A perfect fit
+will have an R squared of 1; fitting a line to the vertices of a
+regular polygon will yield an R squared of zero.  Graphical displays of data
+with an R squared of less than about 0.1 do not show a visible linear trend.
 
 The return value is undefined if the regression fails.  If weights are 
 input, the return value is the weighted correlation coefficient.
@@ -544,14 +552,15 @@ x values are $xy[$i][0], y values are $xy[$i][1].  The module does not
 access any indices greater than $xy[$i][1], so the arrayrefs can point
 to arrays that are longer than two elements.
 
-The optional weights array must be the same length as the data arrays.  The
-weights must be non-negative numbers.  Only the relative size of the weights
-is significant: the results are not affected if the weights are all
-multiplied by a constant.  If you want to do multiple line fits using
-the same weights, the weights must be passed to each call to setData().
+The optional weights array must be the same length as the data arrays.
+The weights must be non-negative numbers.  Only the relative sizes of the
+weights is significant: the program normalizes the weights so that the sum
+of the weights equals the number of points.  If you want to do multiple
+line fits using the same weights, the weights must be passed to each call
+to setData().
 
-Once you successfully call setData(), the next call to any other method
-invokes the regression.
+Once you successfully call setData(), the next call to any method other
+than new() or setData() invokes the regression.
 
 =head2 sigma() - Return the standard error of the estimate
 
@@ -587,8 +596,8 @@ operations on the host system.
 If the x values are not all the same and the apparent "best fit" line is
 vertical, the module will fit a horizontal line.  For example, an input of
 (1, 1), (1, 7), (2, 3), (2, 5) returns a slope of zero, an intercept of 4
-and an R squared of zero.  This is correct behavior because this is the best
-least-squares fit to the data for the given parameterization 
+and an R squared of zero.  This is correct behavior because this line is the
+best least-squares fit to the data for the given parameterization 
 (y = a + b * x).
 
 On a 32-bit system the results are accurate to about 11 significant digits,
